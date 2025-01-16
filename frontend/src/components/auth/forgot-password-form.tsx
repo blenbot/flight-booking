@@ -80,8 +80,11 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+        Aerocheck
+      </h1>
+      <Card className="w-[350px]">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
             Reset Password

@@ -55,15 +55,14 @@ export function RegisterUserForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Create Account
-          </CardTitle>
-          <CardDescription className="text-center">
-            Enter your details to register
-          </CardDescription>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+        Aerocheck
+      </h1>
+      <Card className="w-[350px]">
+        <CardHeader>
+          <CardTitle>Register</CardTitle>
+          <CardDescription>Create an account to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
