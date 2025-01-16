@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
-import { registerUser, loginUser, forgotPassword, resetPassword } from '../controllers/user.controller';
+import { registerUser, loginUser, forgotPassword, resetPassword, updateUserProfile, deleteUser } from '../controllers/user.controller';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
-
+router.put('/profile', authenticateToken, updateUserProfile);
+router.delete('/profile', authenticateToken, deleteUser);
 
 export default router;

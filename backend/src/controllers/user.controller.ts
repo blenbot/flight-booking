@@ -128,30 +128,74 @@ export async function getUserProfile(req: Request, res: Response): Promise<void>
 
 export async function updateUserProfile(req: Request, res: Response): Promise<void> {
   const userId = (req as any).user.id;
-  const { name, email } = req.body;
+  const { name, email, password } = req.body;
 
   try {
-    const updatedUser = await UserModel.update(userId, { name, email });
-    
-    if (!updatedUser) {
+    let updateFields = [];
+    let values = [];
+    let valueIndex = 1;
+
+    if (name) {
+      updateFields.push(`name = $${valueIndex}`);
+      values.push(name);
+      valueIndex++;
+    }
+
+    if (email) {
+      updateFields.push(`email = $${valueIndex}`);
+      values.push(email);
+      valueIndex++;
+    }
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push(`password = $${valueIndex}`);
+      values.push(hashedPassword);
+      valueIndex++;
+    }
+
+    values.push(userId);
+
+    const query = `
+      UPDATE users 
+      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${valueIndex} AND deleted_at IS NULL
+      RETURNING id, name, email, role
+    `;
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
       res.status(404).json({ message: "User not found" });
       return;
     }
 
     res.status(200).json({
       message: "Profile updated successfully",
-      user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role
-      }
+      user: result.rows[0]
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to update profile",
-      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
-    });
+    res.status(500).json({ error: (error as Error).message });
+  }
+}
+
+export async function deleteUser(req: Request, res: Response): Promise<void> {
+  const userId = (req as any).user.id;
+
+  try {
+    const result = await pool.query(
+      "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Account deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
   }
 }
 

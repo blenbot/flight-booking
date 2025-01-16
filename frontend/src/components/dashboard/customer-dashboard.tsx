@@ -30,6 +30,12 @@ export default function CustomerDashboard() {
   });
   const [bookingsWithFlightInfo, setBookingsWithFlightInfo] = useState<(Booking & Partial<Flight>)[]>([]);
   const [cardNumberError, setCardNumberError] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    password: ''
+  });
 
   const fetchBookingDetails = async () => {
     try {
@@ -191,13 +197,62 @@ export default function CustomerDashboard() {
     }
   };
 
+  const handleUpdateProfile = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile');
+
+      const data = await response.json();
+      setUser(data.user);
+      setShowProfile(false);
+    } catch (error) {
+      console.error('Update profile error:', error);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/users/profile', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to delete account');
+
+      localStorage.removeItem('token');
+      setUser(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Delete account error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-gray-400 shadow-sm py-4 px-8 flex justify-between items-center">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
           Aerocheck
         </h1>
-        <Button variant="outline" onClick={handleLogout} className="border-red-500 hover:bg-red-500 hover:text-white text-red-500">Logout</Button>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={() => setShowProfile(true)} className="text-black">
+            Update Profile
+          </Button>
+          <Button variant="outline" onClick={handleLogout} className="border-red-500 hover:bg-red-500 hover:text-white text-red-500">Logout</Button>
+        </div>
       </nav>
 
       <div className="flex">
@@ -376,6 +431,46 @@ export default function CustomerDashboard() {
           <DialogTitle>Booking Successful!</DialogTitle>
           <p className="text-gray-500">Your flight has been booked successfully.</p>
           <Button className="mt-4" onClick={() => setShowSuccess(false)}>Close</Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showProfile} onOpenChange={setShowProfile}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-black">Update Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              className="text-black"
+              placeholder="Name"
+              value={profileData.name}
+              onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+            />
+            <Input
+              className="text-black"
+              placeholder="Email"
+              value={profileData.email}
+              onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+            />
+            <Input
+              className="text-black"
+              type="password"
+              placeholder="New Password (optional)"
+              value={profileData.password}
+              onChange={(e) => setProfileData({...profileData, password: e.target.value})}
+            />
+            <Button onClick={handleUpdateProfile} className="w-full">
+              Update Profile
+            </Button>
+            <Separator />
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAccount}
+              className="w-full"
+            >
+              Delete Account
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
