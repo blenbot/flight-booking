@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/user.model';
@@ -179,23 +179,37 @@ export async function updateUserProfile(req: Request, res: Response): Promise<vo
   }
 }
 
-export async function deleteUser(req: Request, res: Response): Promise<void> {
-  const userId = (req as any).user.id;
-
+export async function deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const result = await pool.query(
-      "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
-      [userId]
-    );
+    const userId = (req as any).user.id;
 
-    if (result.rows.length === 0) {
-      res.status(404).json({ message: "User not found" });
-      return;
+    await pool.query('BEGIN');
+
+    try {
+      await pool.query(
+        "DELETE FROM bookings WHERE user_id = $1",
+        [userId]
+      );
+
+      const result = await pool.query(
+        "DELETE FROM users WHERE id = $1 AND role = 'customer' RETURNING id",
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        res.status(404).json({ message: "User not found or cannot be deleted" });
+        return;
+      }
+
+      await pool.query('COMMIT');
+      res.status(200).json({ message: "Account deleted successfully" });
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
     }
-
-    res.status(200).json({ message: "Account deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    next(error);
   }
 }
 

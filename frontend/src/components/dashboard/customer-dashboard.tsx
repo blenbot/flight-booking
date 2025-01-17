@@ -75,7 +75,7 @@ export default function CustomerDashboard() {
     fetchBookingDetails();
   }, []);
 
-  // Search Flights
+
   const handleSearch = async () => {
     try {
       const response = await fetch(
@@ -101,7 +101,7 @@ export default function CustomerDashboard() {
     ));
   };
 
-  // Create Booking
+
   const handleBooking = (flight: Flight) => {
     setSelectedFlight(flight);
     setShowPayment(true);
@@ -114,7 +114,6 @@ export default function CustomerDashboard() {
     }
   
     try {
-      // Create booking
       const bookingResponse = await fetch('http://localhost:5000/api/v1/bookings', {
         method: 'POST',
         headers: {
@@ -129,10 +128,8 @@ export default function CustomerDashboard() {
   
       if (!bookingResponse.ok) throw new Error('Booking failed');
       
-      // For demo payment, we don't need validation
       const bookingData = await bookingResponse.json();
-  
-      // Store payment details (demo)
+
       const paymentResponse = await fetch('http://localhost:5000/api/v1/payments', {
         method: 'POST',
         headers: {
