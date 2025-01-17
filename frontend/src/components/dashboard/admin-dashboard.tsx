@@ -8,29 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { Menu, Users, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface Flight {
-  flight_id: number;
-  airline_name: string;
-  source: string;
-  destination: string;
-  departure_time: string;
-  arrival_time: string;
-  total_seats: number;
-  available_seats: number;
-  price: number;
-  status: 'scheduled' | 'delayed' | 'boarding' | 'departed' | 'arrived' | 'cancelled';
-}
-
-interface NewFlight {
-  airline_name: string;
-  source: string;
-  destination: string;
-  departure_time: string;
-  arrival_time: string;
-  total_seats: number;
-  price: number;
-}
+import type { Flight, NewFlight } from "@/types/admin";
 
 interface User {
   id: number;
@@ -61,7 +39,9 @@ export default function AdminDashboard() {
     departure_time: "",
     arrival_time: "",
     total_seats: 0,
-    price: 0
+    available_seats: 0,
+    price: 0,
+    status: 'scheduled'
   });
   const [showUsers, setShowUsers] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -154,7 +134,9 @@ export default function AdminDashboard() {
         departure_time: "",
         arrival_time: "",
         total_seats: 0,
-        price: 0
+        available_seats: 0,
+        price: 0,
+        status: 'scheduled'
       });
     } catch (error) {
       console.error("Error:", error);
@@ -412,47 +394,47 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             <Input
               placeholder="Airline Name"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.airline_name}
               onChange={(e) => setNewFlight({...newFlight, airline_name: e.target.value})}
             />
             <Input
               placeholder="From"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.source}
               onChange={(e) => setNewFlight({...newFlight, source: e.target.value})}
             />
             <Input
               placeholder="To"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.destination}
               onChange={(e) => setNewFlight({...newFlight, destination: e.target.value})}
             />
             <Input
               type="datetime-local"
               placeholder="Departure Time"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.departure_time}
               onChange={(e) => setNewFlight({...newFlight, departure_time: e.target.value})}
             />
             <Input
               type="datetime-local"
               placeholder="Arrival Time"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.arrival_time}
               onChange={(e) => setNewFlight({...newFlight, arrival_time: e.target.value})}
             />
             <Input
               type="number"
               placeholder="Total Seats"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.total_seats}
               onChange={(e) => setNewFlight({...newFlight, total_seats: parseInt(e.target.value)})}
             />
             <Input
               type="number"
               placeholder="Price"
-              className="placeholder:text-black"
+              className="placeholder:text-black text-black"
               value={newFlight.price}
               onChange={(e) => setNewFlight({...newFlight, price: parseFloat(e.target.value)})}
             />
@@ -476,7 +458,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <Input
                 placeholder="Airline Name"
-                className="placeholder:text-black"
+                className="placeholder:text-black text-black"
                 value={editingFlight.airline_name}
                 onChange={(e) => setEditingFlight({
                   ...editingFlight,
@@ -485,7 +467,7 @@ export default function AdminDashboard() {
               />
               <Input
                 placeholder="Source"
-                className="placeholder:text-black"
+                className="placeholder:text-black text-black"
                 value={editingFlight.source}
                 onChange={(e) => setEditingFlight({
                   ...editingFlight,
@@ -494,7 +476,7 @@ export default function AdminDashboard() {
               />
               <Input
                 placeholder="Destination"
-                className="placeholder:text-black"
+                className="placeholder:text-black text-black"
                 value={editingFlight.destination}
                 onChange={(e) => setEditingFlight({
                   ...editingFlight,
@@ -503,7 +485,7 @@ export default function AdminDashboard() {
               />
               <Input
                 type="datetime-local"
-                className="placeholder:text-black"
+                className="placeholder:text-black text-black"
                 value={editingFlight.departure_time}
                 onChange={(e) => setEditingFlight({
                   ...editingFlight,
@@ -513,7 +495,7 @@ export default function AdminDashboard() {
               <Input
                 type="number"
                 placeholder="Price"
-                className="placeholder:text-black"
+                className="placeholder:text-black text-black"
                 value={editingFlight.price}
                 onChange={(e) => setEditingFlight({
                   ...editingFlight,
@@ -523,7 +505,7 @@ export default function AdminDashboard() {
               <Input
                 type="number"
                 placeholder="Available Seats"
-                className="placeholder:text-black"
+                className="placeholder:text-black text-black"
                 value={editingFlight.available_seats}
                 onChange={(e) => setEditingFlight({
                   ...editingFlight,

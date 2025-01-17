@@ -1,17 +1,66 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import pool from "../db";
 
-export async function addFlight(req: Request, res: Response) {
-  const { airline_name, source, destination, departure_time, arrival_time, total_seats, price } = req.body;
 
+export async function addFlight(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const { 
+      airline_name, 
+      source, 
+      destination, 
+      departure_time, 
+      arrival_time, 
+      total_seats, 
+      price 
+    } = req.body;
+
+    // Validate required fields
+    if (!airline_name || !source || !destination || !departure_time || !arrival_time || !total_seats || !price) {
+      res.status(400).json({ message: "Missing required fields" });
+      return;
+    }
+
+    // Validate date formats
+    const departureDate = new Date(departure_time);
+    const arrivalDate = new Date(arrival_time);
+
+    if (departureDate >= arrivalDate) {
+      res.status(400).json({ message: "Departure time must be before arrival time" });
+      return;
+    }
+
     const result = await pool.query(
-      "INSERT INTO flights (airline_name, source, destination, departure_time, arrival_time, total_seats, price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [airline_name, source, destination, departure_time, arrival_time, total_seats, price]
+      `INSERT INTO flights (
+        airline_name,
+        source,
+        destination,
+        departure_time,
+        arrival_time,
+        total_seats,
+        available_seats,
+        price,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+      RETURNING *`,
+      [
+        airline_name,
+        source,
+        destination,
+        departure_time,
+        arrival_time,
+        total_seats,
+        total_seats, // Initially available_seats equals total_seats
+        price,
+        'scheduled' // Default status
+      ]
     );
-    res.status(201).json({ message: "Flight added successfully", flight: result.rows[0] });
+
+    res.status(201).json({ 
+      message: "Flight added successfully", 
+      flight: result.rows[0] 
+    });
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    next(error);
   }
 }
 
