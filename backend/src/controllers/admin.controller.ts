@@ -207,3 +207,53 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
     });
   }
 }
+
+export async function deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    const userCheck = await pool.query(
+      "SELECT role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    if (userCheck.rows[0].role === 'admin') {
+      res.status(403).json({ message: "Cannot delete admin users" });
+      return;
+    }
+
+    // Begin transaction
+    await pool.query('BEGIN');
+
+    try {
+      // Delete user's bookings first due to foreign key constraint
+      await pool.query(
+        "DELETE FROM bookings WHERE user_id = $1",
+        [userId]
+      );
+
+      // Hard delete the user
+      const result = await pool.query(
+        "DELETE FROM users WHERE id = $1 AND role != 'admin' RETURNING id",
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error("User not found or cannot be deleted");
+      }
+
+      await pool.query('COMMIT');
+      res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    next(error);
+  }
+}

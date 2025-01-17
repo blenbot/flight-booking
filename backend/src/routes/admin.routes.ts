@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, authorizeAdmin } from '../middleware/auth';
-import { getAllUsers, getAllFlights, addFlight, updateFlight, deleteFlight } from '../controllers/admin.controller';
+import { getAllUsers, getAllFlights, addFlight, updateFlight, deleteFlight, deleteUser } from '../controllers/admin.controller';
 
 const router = Router();
 
@@ -10,5 +10,6 @@ router.get('/flights', authenticateToken, authorizeAdmin, getAllFlights);
 router.post('/flights', authenticateToken, authorizeAdmin, addFlight);
 router.put('/flights/:id', authenticateToken, authorizeAdmin, updateFlight);
 router.delete('/flights/:id', authenticateToken, authorizeAdmin, deleteFlight);
+router.delete('/users/:id', authenticateToken, authorizeAdmin, deleteUser);
 
 export default router;

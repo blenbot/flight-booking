@@ -184,19 +184,28 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-    
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+  
     try {
       const response = await fetch(`http://localhost:5000/api/v1/admin/users/${userId}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-      if (!response.ok) throw new Error("Failed to delete user");
+  
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete user');
+      }
+  
+      // Refresh users list
       fetchUsers();
     } catch (error) {
-      console.error("Error:", error);
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete user');
     }
   };
 
