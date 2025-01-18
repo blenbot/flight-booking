@@ -10,6 +10,43 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Flight, NewFlight } from "@/types/admin";
 
+interface FlightCardProps {
+  flight: Flight;
+  onEditClick: (flight: Flight) => void;
+}
+
+const FlightCard = ({ flight, onEditClick }: FlightCardProps) => {
+  return (
+    <Card>
+      <CardContent className="grid grid-cols-4 gap-6 p-6 items-center">
+        <div className="space-y-2">
+          <div className="font-semibold text-lg">{flight.airline_name}</div>
+          <div className="text-sm text-gray-500">
+            {flight.source} → {flight.destination}
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="text-sm text-gray-500">Departure:</div>
+          <div className="text-sm">{new Date(flight.departure_time).toLocaleString()}</div>
+          <div className="text-sm text-gray-500 mt-2">Arrival:</div>
+          <div className="text-sm">{new Date(flight.arrival_time).toLocaleString()}</div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="text-sm text-gray-500">Available Seats:</div>
+          <div className="text-sm">{flight.available_seats}/{flight.total_seats}</div>
+          <div className="font-medium">Price: ${flight.price}</div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={() => onEditClick(flight)}>Update</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 interface User {
   id: number;
   name: string;
@@ -144,23 +181,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateFlight = async (flightId: number, updatedData: Partial<Flight>) => {
+  const formatDateForAPI = (date: string) => {
+    return new Date(date).toISOString();
+  };
+
+  const handleUpdateFlight = async (flightId: number, updatedFlight: Flight) => {
     try {
       const response = await fetch(`http://localhost:5000/api/v1/admin/flights/${flightId}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(updatedData)
+        body: JSON.stringify({
+          airline_name: updatedFlight.airline_name,
+          source: updatedFlight.source,
+          destination: updatedFlight.destination,
+          departure_time: updatedFlight.departure_time,
+          arrival_time: updatedFlight.arrival_time,
+          total_seats: updatedFlight.total_seats,
+          available_seats: updatedFlight.available_seats,
+          price: updatedFlight.price,
+          status: updatedFlight.status || 'scheduled'
+        })
       });
 
-      if (!response.ok) throw new Error("Failed to update flight");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update flight');
+      }
+
       setEditingFlight(null);
       fetchFlights();
     } catch (error) {
-      console.error("Error:", error);
-      setError("Failed to update flight");
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update flight');
     }
   };
 
@@ -290,32 +345,17 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[600px]">
-                <div className="grid gap-4">
+                <div className="space-y-4">
                   {loading ? (
                     <div className="text-center py-4">Loading...</div>
                   ) : flights.length > 0 ? (
                     <>
                       {flights.map((flight) => (
-                        <Card key={flight.flight_id}>
-                          <CardContent className="flex justify-between items-center p-6">
-                            <div>
-                              <p className="font-semibold">{flight.airline_name}</p>
-                              <p>{flight.source} → {flight.destination}</p>
-                              <p className="text-sm text-gray-500">
-                                Departure: {new Date(flight.departure_time).toLocaleString()}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                Available Seats: {flight.available_seats}/{flight.total_seats}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold">${flight.price}</p>
-                              <Button variant="outline" onClick={() => setEditingFlight(flight)}>
-                                Edit
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <FlightCard 
+                          key={flight.flight_id} 
+                          flight={flight} 
+                          onEditClick={setEditingFlight}
+                        />
                       ))}
                       <div className="flex justify-center gap-2 mt-4">
                         {Array.from({ length: totalPages }, (_, i) => (
@@ -401,52 +441,66 @@ export default function AdminDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              placeholder="Airline Name"
-              className="placeholder:text-black text-black"
-              value={newFlight.airline_name}
-              onChange={(e) => setNewFlight({...newFlight, airline_name: e.target.value})}
-            />
-            <Input
-              placeholder="From"
-              className="placeholder:text-black text-black"
-              value={newFlight.source}
-              onChange={(e) => setNewFlight({...newFlight, source: e.target.value})}
-            />
-            <Input
-              placeholder="To"
-              className="placeholder:text-black text-black"
-              value={newFlight.destination}
-              onChange={(e) => setNewFlight({...newFlight, destination: e.target.value})}
-            />
-            <Input
-              type="datetime-local"
-              placeholder="Departure Time"
-              className="placeholder:text-black text-black"
-              value={newFlight.departure_time}
-              onChange={(e) => setNewFlight({...newFlight, departure_time: e.target.value})}
-            />
-            <Input
-              type="datetime-local"
-              placeholder="Arrival Time"
-              className="placeholder:text-black text-black"
-              value={newFlight.arrival_time}
-              onChange={(e) => setNewFlight({...newFlight, arrival_time: e.target.value})}
-            />
-            <Input
-              type="number"
-              placeholder="Total Seats"
-              className="placeholder:text-black text-black"
-              value={newFlight.total_seats}
-              onChange={(e) => setNewFlight({...newFlight, total_seats: parseInt(e.target.value)})}
-            />
-            <Input
-              type="number"
-              placeholder="Price"
-              className="placeholder:text-black text-black"
-              value={newFlight.price}
-              onChange={(e) => setNewFlight({...newFlight, price: parseFloat(e.target.value)})}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Airline Name</label>
+              <Input
+                className="text-black"
+                value={newFlight.airline_name}
+                onChange={(e) => setNewFlight({...newFlight, airline_name: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">From</label>
+              <Input
+                className="text-black"
+                value={newFlight.source}
+                onChange={(e) => setNewFlight({...newFlight, source: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">To</label>
+              <Input
+                className="text-black"
+                value={newFlight.destination}
+                onChange={(e) => setNewFlight({...newFlight, destination: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Departure Time</label>
+              <Input
+                type="datetime-local"
+                className="text-black"
+                value={newFlight.departure_time}
+                onChange={(e) => setNewFlight({...newFlight, departure_time: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Arrival Time</label>
+              <Input
+                type="datetime-local"
+                className="text-black"
+                value={newFlight.arrival_time}
+                onChange={(e) => setNewFlight({...newFlight, arrival_time: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Total Seats</label>
+              <Input
+                type="number"
+                className="text-black"
+                value={newFlight.total_seats}
+                onChange={(e) => setNewFlight({...newFlight, total_seats: parseInt(e.target.value)})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Price ($)</label>
+              <Input
+                type="number"
+                className="text-black"
+                value={newFlight.price}
+                onChange={(e) => setNewFlight({...newFlight, price: parseFloat(e.target.value)})}
+              />
+            </div>
             <Button onClick={handleAddFlight} className="w-full">
               Add Flight
             </Button>
@@ -465,66 +519,95 @@ export default function AdminDashboard() {
           </DialogHeader>
           {editingFlight && (
             <div className="space-y-4">
-              <Input
-                placeholder="Airline Name"
-                className="placeholder:text-black text-black"
-                value={editingFlight.airline_name}
-                onChange={(e) => setEditingFlight({
-                  ...editingFlight,
-                  airline_name: e.target.value
-                })}
-              />
-              <Input
-                placeholder="Source"
-                className="placeholder:text-black text-black"
-                value={editingFlight.source}
-                onChange={(e) => setEditingFlight({
-                  ...editingFlight,
-                  source: e.target.value
-                })}
-              />
-              <Input
-                placeholder="Destination"
-                className="placeholder:text-black text-black"
-                value={editingFlight.destination}
-                onChange={(e) => setEditingFlight({
-                  ...editingFlight,
-                  destination: e.target.value
-                })}
-              />
-              <Input
-                type="datetime-local"
-                className="placeholder:text-black text-black"
-                value={editingFlight.departure_time}
-                onChange={(e) => setEditingFlight({
-                  ...editingFlight,
-                  departure_time: e.target.value
-                })}
-              />
-              <Input
-                type="number"
-                placeholder="Price"
-                className="placeholder:text-black text-black"
-                value={editingFlight.price}
-                onChange={(e) => setEditingFlight({
-                  ...editingFlight,
-                  price: parseFloat(e.target.value)
-                })}
-              />
-              <Input
-                type="number"
-                placeholder="Available Seats"
-                className="placeholder:text-black text-black"
-                value={editingFlight.available_seats}
-                onChange={(e) => setEditingFlight({
-                  ...editingFlight,
-                  available_seats: parseInt(e.target.value)
-                })}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Airline Name</label>
+                <Input
+                  className="text-black"
+                  value={editingFlight.airline_name}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    airline_name: e.target.value
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Source</label>
+                <Input
+                  className="text-black"
+                  value={editingFlight.source}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    source: e.target.value
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Destination</label>
+                <Input
+                  className="text-black"
+                  value={editingFlight.destination}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    destination: e.target.value
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Departure Time</label>
+                <Input
+                  type="datetime-local"
+                  className="text-black"
+                  value={editingFlight.departure_time}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    departure_time: e.target.value
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Arrival Time</label>
+                <Input
+                  type="datetime-local"
+                  className="text-black"
+                  value={editingFlight.arrival_time}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    arrival_time: e.target.value
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Price ($)</label>
+                <Input
+                  type="number"
+                  className="text-black"
+                  value={editingFlight.price}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    price: parseFloat(e.target.value)
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-black">Available Seats</label>
+                <Input
+                  type="number"
+                  className="text-black"
+                  value={editingFlight.available_seats}
+                  onChange={(e) => setEditingFlight({
+                    ...editingFlight,
+                    available_seats: parseInt(e.target.value)
+                  })}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button 
                   className="flex-1" 
-                  onClick={() => handleUpdateFlight(editingFlight.flight_id, editingFlight)}
+                  onClick={() => {
+                    if (editingFlight) {
+                      handleUpdateFlight(editingFlight.flight_id, editingFlight);
+                    }
+                  }}
                 >
                   Update Flight
                 </Button>

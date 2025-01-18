@@ -65,12 +65,6 @@ export async function addFlight(req: Request, res: Response, next: NextFunction)
 }
 
 export async function updateFlight(req: Request, res: Response): Promise<void> {
-  // Verify admin role
-  if ((req as any).user.role !== 'admin') {
-    res.status(403).json({ message: "Access denied: Admin only" });
-    return;
-  }
-
   const { id } = req.params;
   const { 
     airline_name, 
@@ -78,43 +72,14 @@ export async function updateFlight(req: Request, res: Response): Promise<void> {
     destination, 
     departure_time, 
     arrival_time, 
-    total_seats, 
-    price 
+    total_seats,
+    available_seats,
+    price,
+    status = 'scheduled'
   } = req.body;
-
-  // Validate input data
-  if (!airline_name || !source || !destination || !departure_time || !arrival_time || !total_seats || !price) {
-    res.status(400).json({ message: "All fields are required" });
-    return;
-  }
-
-  // Validate business rules
-  if (departure_time >= arrival_time) {
-    res.status(400).json({ message: "Departure time must be before arrival time" });
-    return;
-  }
-
-  if (price <= 0 || total_seats <= 0) {
-    res.status(400).json({ message: "Price and seats must be positive numbers" });
-    return;
-  }
 
   try {
     await pool.query('BEGIN');
-
-    // Check current bookings
-    const bookingCheck = await pool.query(
-      "SELECT COUNT(*) as booking_count FROM bookings WHERE flight_id = $1",
-      [id]
-    );
-
-    if (parseInt(bookingCheck.rows[0].booking_count) > total_seats) {
-      await pool.query('ROLLBACK');
-      res.status(400).json({ 
-        message: "Cannot reduce seats below current booking count" 
-      });
-      return;
-    }
 
     const result = await pool.query(
       `UPDATE flights 
@@ -124,16 +89,29 @@ export async function updateFlight(req: Request, res: Response): Promise<void> {
            departure_time = $4, 
            arrival_time = $5, 
            total_seats = $6, 
-           price = $7,
+           available_seats = $7,
+           price = $8,
+           status = $9,
            updated_at = CURRENT_TIMESTAMP
-       WHERE flight_id = $8 AND deleted_at IS NULL
+       WHERE flight_id = $10 AND deleted_at IS NULL
        RETURNING *`,
-      [airline_name, source, destination, departure_time, arrival_time, total_seats, price, id]
+      [
+        airline_name, 
+        source, 
+        destination, 
+        departure_time, 
+        arrival_time, 
+        total_seats, 
+        available_seats,
+        price,
+        status,
+        id
+      ]
     );
 
     if (result.rows.length === 0) {
       await pool.query('ROLLBACK');
-      res.status(404).json({ message: "Flight not found or already deleted" });
+      res.status(404).json({ message: "Flight not found" });
       return;
     }
 
@@ -145,10 +123,7 @@ export async function updateFlight(req: Request, res: Response): Promise<void> {
   } catch (error) {
     await pool.query('ROLLBACK');
     console.error("Error updating flight:", error);
-    res.status(500).json({ 
-      error: "Error updating flight",
-      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
-    });
+    res.status(500).json({ error: (error as Error).message });
   }
 }
 
