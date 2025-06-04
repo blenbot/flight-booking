@@ -151,14 +151,23 @@ export default function AdminDashboard() {
 
   const handleAddFlight = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/v1/admin/flights", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify(newFlight)
-      });
+      const body = {
+        ...newFlight,
+        departure_time: formatDateForAPI(newFlight.departure_time),
+        arrival_time:   formatDateForAPI(newFlight.arrival_time)
+      }
+
+      const response = await fetch(
+        "http://localhost:5000/api/v1/admin/flights",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify(body)
+        }
+      )
 
       if (!response.ok) throw new Error("Failed to add flight");
       
@@ -182,29 +191,34 @@ export default function AdminDashboard() {
   };
 
   const formatDateForAPI = (date: string) => {
-    return new Date(date).toISOString();
-  };
+    return new Date(date).toISOString()
+  }
 
   const handleUpdateFlight = async (flightId: number, updatedFlight: Flight) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/admin/flights/${flightId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          airline_name: updatedFlight.airline_name,
-          source: updatedFlight.source,
-          destination: updatedFlight.destination,
-          departure_time: updatedFlight.departure_time,
-          arrival_time: updatedFlight.arrival_time,
-          total_seats: updatedFlight.total_seats,
-          available_seats: updatedFlight.available_seats,
-          price: updatedFlight.price,
-          status: updatedFlight.status || 'scheduled'
-        })
-      });
+      const body = {
+        airline_name:   updatedFlight.airline_name,
+        source:         updatedFlight.source,
+        destination:    updatedFlight.destination,
+        departure_time: formatDateForAPI(updatedFlight.departure_time),
+        arrival_time:   formatDateForAPI(updatedFlight.arrival_time),
+        total_seats:    updatedFlight.total_seats,
+        available_seats:updatedFlight.available_seats,
+        price:          updatedFlight.price,
+        status:         updatedFlight.status || "scheduled"
+      }
+
+      const response = await fetch(
+        `http://localhost:5000/api/v1/admin/flights/${flightId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify(body)
+        }
+      )
 
       if (!response.ok) {
         const error = await response.json();
